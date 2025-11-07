@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     db_name: str
 
     # Прочие параметры
+    secret_key: str
+    algorithm: str
+    access_token_expire_minutes: int
     password_pepper: str
     debug: bool = False
 
