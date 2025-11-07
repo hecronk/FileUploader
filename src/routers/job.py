@@ -1,28 +1,20 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, HTTPException
+from starlette.responses import JSONResponse
 
-from src.core.database.db import get_db
-from src.core.database.models import User
-from src.core.database.models.job import Job
-from src.dependencies.auth import get_current_user
+from src.jobs import job_manager
 
 
 router = APIRouter(prefix="/jobs", tags=["File"])
 
 
-@router.get("/{job}")
-async def check(job: str = "", db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+@router.get("/{job_uuid}")
+async def get_job_status(job_uuid: str):
+    job = await job_manager.get_job(job_uuid)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return JSONResponse(content=job.to_dict())
 
-    job_uuid = job
 
-    if not job_uuid:
-        return {
-            "message": "Failed to find such job"
-        }
-
-    status = db.query(Job).filter_by(uuid=job_uuid).first().status
-
-    return {
-        "job": job_uuid,
-        "status": status
-    }
+@router.get("/jobs")
+async def list_jobs():
+    return await job_manager.list_jobs()
