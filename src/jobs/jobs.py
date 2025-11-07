@@ -2,7 +2,9 @@ import asyncio
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Set
+
+from starlette.websockets import WebSocket
 
 
 @dataclass
@@ -12,6 +14,7 @@ class Job:
     status: str = "uploaded"
     created_at: datetime = field(default_factory=datetime.utcnow)
     updated_at: datetime = field(default_factory=datetime.utcnow)
+    websocket_subscribers: Set[WebSocket] = field(default_factory=set)
     progress: float = 0.0
     error: Optional[str] = None
     result: Optional[str] = None
@@ -26,6 +29,17 @@ class Job:
             "error": self.error,
             "result": self.result,
         }
+
+    async def broadcast_progress(self):
+        dead_subs = list()
+
+        for ws in self.websocket_subscribers:
+            try:
+                await ws.send_json(self.to_dict())
+            except Exception as e:
+                dead_subs.append(ws)
+        for ws in dead_subs:
+            self.websocket_subscribers.remove(ws)
 
 
 class JobManager:
