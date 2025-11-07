@@ -40,7 +40,7 @@ async def login(user: UserLogin, db: Session = Depends(get_db)):
     if not valid_password:
         raise HTTPException(status_code=401, detail="Invalid username or password")
 
-    if security.needs_rehash(found_user.hashed_password):
+    if await security.needs_rehash(found_user.hashed_password):
         found_user.hashed_password = security.get_password_hash(user.password)
         db.commit()
 
