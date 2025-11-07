@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     secret_key: str
     algorithm: str
     access_token_expire_minutes: int
+    media_path: str
     password_pepper: str
     debug: bool = False
 
