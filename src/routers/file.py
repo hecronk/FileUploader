@@ -49,7 +49,8 @@ async def upload(upload_file: UploadFile = FileField(...), db: Session = Depends
         job.status = "completed"
         db.add(job)
         db.commit()
-        return {"message": "Successfully uploaded file"}
+        db.refresh(job)
+        return {"message": "Successfully uploaded file", "job uuid": job.uuid}
     else:
         job.status = "failed"
         db.add(job)
