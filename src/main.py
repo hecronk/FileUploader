@@ -1,3 +1,4 @@
+import asyncio
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 
 from fastapi import FastAPI
@@ -11,6 +12,7 @@ app = FastAPI()
 
 @app.on_event("startup")
 async def startup_event():
+    app.state.loop = asyncio.get_running_loop()
     app.state.thread_pool = ThreadPoolExecutor(max_workers=10)
     app.state.process_pool = ProcessPoolExecutor(max_workers=4)
 

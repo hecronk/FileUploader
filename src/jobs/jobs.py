@@ -47,9 +47,8 @@ class Job:
 
     @status.setter
     def status(self, value):
-        if value in ("pending", "completed"):
+        if value in ("pending", "processing", "completed", "failed"):
             self._status = value
-            asyncio.create_task(self.broadcast_progress())
         else:
             raise ValueError("status must be one of available statuses")
 
