@@ -47,7 +47,7 @@ class Job:
 
     @status.setter
     def status(self, value):
-        if value in ("pending", "processing", "completed", "failed"):
+        if value in ("pending", "processing", "checking for viruses", "completed", "failed"):
             self._status = value
         else:
             raise ValueError("status must be one of available statuses")

@@ -15,19 +15,36 @@ from src.jobs.jobs import Job
 class JobFileProcessor:
     job: Job
     file: UploadFile
-    loop: Annotated[Any]
+    app: Annotated[Any]
+
+    @staticmethod
+    def check_for_virus(path: str):
+        time.sleep(10)
+        return "OK"
 
     def process_file_job(self):
         time.sleep(15)
+        loop = self.app.state.loop
         self.job.status = "processing"
-        asyncio.run_coroutine_threadsafe(self.job.broadcast_progress(), self.loop)
+        asyncio.run_coroutine_threadsafe(self.job.broadcast_progress(), loop)
 
         media_path = pathlib.Path(settings.media_path)
+        file_path = media_path.joinpath(self.file.filename)
         if not media_path.exists():
             self.job.status = "failed"
-            asyncio.run_coroutine_threadsafe(self.job.broadcast_progress(), self.loop)
+            future_ws = asyncio.run_coroutine_threadsafe(self.job.broadcast_progress(), loop)
+            future_ws.result()
         else:
-            with open(media_path.joinpath(self.file.filename), mode="wb") as f:
+            with open(file_path, mode="wb") as f:
                 f.write(self.job.data)
-            self.job.status = "completed"
-            asyncio.run_coroutine_threadsafe(self.job.broadcast_progress(), self.loop)
+            self.job.status = "checking for viruses"
+            future_ws = asyncio.run_coroutine_threadsafe(self.job.broadcast_progress(), loop)
+            future_ws.result()
+            future = self.app.state.process_pool.submit(JobFileProcessor.check_for_virus, str(file_path))
+            result = future.result()
+            if result == "OK":
+                self.job.status = "completed"
+            else:
+                self.job.status = "failed"
+            future_ws = asyncio.run_coroutine_threadsafe(self.job.broadcast_progress(), loop)
+            future_ws.result()
