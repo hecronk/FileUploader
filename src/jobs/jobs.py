@@ -11,11 +11,11 @@ from starlette.websockets import WebSocket
 class Job:
     uuid: str
     data: memoryview
-    status: str = "uploaded"
+    _status: str = field(default="pending", init=False, repr=False)
+    _progress: int = field(default=0, init=False, repr=False)
     created_at: datetime = field(default_factory=datetime.utcnow)
     updated_at: datetime = field(default_factory=datetime.utcnow)
     websocket_subscribers: Set[WebSocket] = field(default_factory=set)
-    progress: float = 0.0
     error: Optional[str] = None
     result: Optional[str] = None
 
@@ -29,6 +29,29 @@ class Job:
             "error": self.error,
             "result": self.result,
         }
+
+    @property
+    def progress(self):
+        return self._progress
+
+    @progress.setter
+    def progress(self, value):
+        if type(value) is int:
+            self._progress = value
+        else:
+            raise ValueError("progress count must be int instance")
+
+    @property
+    def status(self):
+        return self._status
+
+    @status.setter
+    def status(self, value):
+        if value in ("pending", "completed"):
+            self._status = value
+            asyncio.create_task(self.broadcast_progress())
+        else:
+            raise ValueError("status must be one of available statuses")
 
     async def broadcast_progress(self):
         dead_subs = list()
