@@ -1,8 +1,9 @@
 import asyncio
 import io
-from unittest.mock import MagicMock, AsyncMock
 
 import pytest
+from unittest.mock import MagicMock, AsyncMock
+
 from src.jobs.job_file_processor import JobFileProcessor
 
 
