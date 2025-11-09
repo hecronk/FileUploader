@@ -41,5 +41,5 @@ async def test_process_file_job(monkeypatch, tmp_path):
 
     assert mock_job.status == "completed"
 
-    assert mock_job.broadcast_progress.call_count >= 1
+    assert mock_job.broadcast_progress.call_count == 3
     mock_app.state.process_pool.submit.assert_called_once()
