@@ -8,7 +8,7 @@ from src.jobs.job_file_processor import JobFileProcessor
 
 router = APIRouter(prefix="/file", tags=["File"])
 
-@router.post("/upload")
+@router.post("/upload", status_code=201)
 async def upload(request: Request, upload_file: UploadFile = File(...), user: User = Depends(get_current_user)):
     data: bytes = await upload_file.read()
     job = await job_manager.create_job(data)
