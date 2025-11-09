@@ -16,9 +16,6 @@ async def test_file_upload_with_websocket(monkeypatch):
     mock_job_manager.create_job.return_value = mock_job
     monkeypatch.setattr("src.routers.file.job_manager", mock_job_manager)
 
-    mock_processor = MagicMock()
-    monkeypatch.setattr("src.jobs.job_file_processor.JobFileProcessor", MagicMock(return_value=mock_processor))
-
     fake_thread_pool = MagicMock()
     app.state.thread_pool = fake_thread_pool
 
