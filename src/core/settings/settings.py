@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     @property
     def database_url(self) -> str:
         """Готовая строка подключения к SQLAlchemy"""
-        return f"postgresql+psycopg2://{self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_name}"
+        return f"postgresql+asyncpg://{self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_name}"
 
 # Создаём глобальный объект настроек
 settings = Settings()

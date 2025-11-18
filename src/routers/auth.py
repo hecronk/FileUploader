@@ -1,9 +1,10 @@
 from datetime import timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from src.core.database.db import get_db
+from src.core.database.db import get_session
 from src.core.settings.settings import settings
 from src.core.utils import security
 
@@ -16,9 +17,12 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
 @router.post("/register")
-async def register(user: UserRegister, db: Session = Depends(get_db)):
-    user_exists = db.query(User).filter_by(username=user.username).first()
-    if user_exists:
+async def register(user: UserRegister, db: Session = Depends(get_session)):
+    query = select(User).where(User.username == user.username)
+    result = await db.execute(query)
+    found_user = result.scalar_one_or_none()
+    # user_exists = db.query(User).filter_by(username=user.username).first()
+    if found_user:
         raise HTTPException(status_code=400, detail="Username already exists")
 
     user = User(
@@ -32,8 +36,11 @@ async def register(user: UserRegister, db: Session = Depends(get_db)):
     return {"msg": "User created", "uuid": str(user.uuid)}
 
 @router.post("/login")
-async def login(user: UserLogin, db: Session = Depends(get_db)):
-    found_user = db.query(User).filter_by(username=user.username).first()
+async def login(user: UserLogin, db: Session = Depends(get_session)):
+    query = select(User).where(User.username == user.username)
+    result = await db.execute(query)
+    found_user = result.scalar_one_or_none()
+    # found_user = db.query(User).filter_by(username=user.username).first()
     if not found_user:
         raise HTTPException(status_code=401, detail="Invalid username or password")
 

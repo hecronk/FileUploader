@@ -7,6 +7,7 @@ from typing import Any
 from fastapi import UploadFile
 from sqlalchemy.sql.annotation import Annotated
 
+from src.core.database.models import File
 from src.core.settings.settings import settings
 from src.jobs.jobs import Job
 
@@ -21,6 +22,18 @@ class JobFileProcessor:
     def check_for_virus(path: str):
         time.sleep(10)
         return "OK"
+
+    async def save_file(self):
+        async with self.app.state.async_session() as session:
+            db_file = File(
+                filename=self.file.filename,
+                path=self.job.result,
+                owner=self.job.initiator,
+            )
+            session.add(db_file)
+            await session.commit()
+            await session.refresh(db_file)
+            return db_file
 
     def process_file_job(self):
         time.sleep(15)
@@ -37,12 +50,15 @@ class JobFileProcessor:
         else:
             with open(file_path, mode="wb") as f:
                 f.write(self.job.data)
+            self.job.result = str(file_path)
             self.job.status = "checking for viruses"
             future_ws = asyncio.run_coroutine_threadsafe(self.job.broadcast_progress(), loop)
             future_ws.result()
             future = self.app.state.process_pool.submit(JobFileProcessor.check_for_virus, str(file_path))
             result = future.result()
             if result == "OK":
+                future_save = asyncio.run_coroutine_threadsafe(self.save_file(), loop)
+                future_save.result()
                 self.job.status = "completed"
             else:
                 self.job.status = "failed"

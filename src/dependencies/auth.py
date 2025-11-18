@@ -1,15 +1,16 @@
 from fastapi import Depends, Security, HTTPException
 from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 from jose import JWTError
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from src.core.database.db import get_db
+from src.core.database.db import get_session
 from src.core.database.models import User
 from src.core.utils.security import decode_access_token
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
-async def get_current_user(security_scopes: SecurityScopes, token: str = Security(oauth2_scheme), db: Session = Depends(get_db),):
+async def get_current_user(security_scopes: SecurityScopes, token: str = Security(oauth2_scheme), db: Session = Depends(get_session),):
     try:
         payload = await decode_access_token(token)
         user_scopes = payload.get("scopes", [])
@@ -18,7 +19,10 @@ async def get_current_user(security_scopes: SecurityScopes, token: str = Securit
             if scope not in user_scopes:
                 raise HTTPException(status_code=403, detail="Not enough permissions")
 
-        user = db.query(User).filter_by(uuid=payload.get("sub")).first()
+        # user = db.query(User).filter_by(uuid=payload.get("sub")).first()
+        query = select(User).where(User.uuid == payload.get("sub"))
+        result = await db.execute(query)
+        user = result.scalar_one_or_none()
 
         if user:
             return user

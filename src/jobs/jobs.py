@@ -13,6 +13,7 @@ class Job:
     data: memoryview
     _status: str = field(default="pending", init=False, repr=False)
     _progress: int = field(default=0, init=False, repr=False)
+    initiator: str
     created_at: datetime = field(default_factory=datetime.utcnow)
     updated_at: datetime = field(default_factory=datetime.utcnow)
     websocket_subscribers: Set[WebSocket] = field(default_factory=set)
@@ -69,9 +70,9 @@ class JobManager:
         self.jobs: dict[str, Job] = {}
         self.lock = asyncio.Lock()
 
-    async def create_job(self, data: bytes) -> Job:
+    async def create_job(self, data: bytes, initiator) -> Job:
         job_uuid = str(uuid.uuid4())
-        job = Job(uuid=job_uuid, data=memoryview(data))
+        job = Job(uuid=job_uuid, data=memoryview(data), initiator=initiator)
         async with self.lock:
             self.jobs[job_uuid] = job
         return job

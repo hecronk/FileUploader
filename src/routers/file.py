@@ -11,7 +11,7 @@ router = APIRouter(prefix="/file", tags=["File"])
 @router.post("/upload", status_code=201)
 async def upload(request: Request, upload_file: UploadFile = File(...), user: User = Depends(get_current_user)):
     data: bytes = await upload_file.read()
-    job = await job_manager.create_job(data)
+    job = await job_manager.create_job(data, initiator=user.uuid)
     file_processor = JobFileProcessor(job, upload_file, request.app)
     thread_pool = request.app.state.thread_pool
     thread_pool.submit(file_processor.process_file_job)
