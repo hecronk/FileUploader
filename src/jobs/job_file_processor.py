@@ -3,6 +3,7 @@ import pathlib
 import time
 from dataclasses import dataclass
 from typing import Any
+from urllib.parse import unquote
 
 from fastapi import UploadFile
 from sqlalchemy.sql.annotation import Annotated
@@ -23,10 +24,10 @@ class JobFileProcessor:
         time.sleep(10)
         return "OK"
 
-    async def save_file(self):
+    async def save_file(self, filename):
         async with self.app.state.async_session() as session:
             db_file = File(
-                filename=self.file.filename,
+                filename=filename,
                 path=self.job.result,
                 owner=self.job.initiator,
             )
@@ -37,12 +38,13 @@ class JobFileProcessor:
 
     def process_file_job(self):
         time.sleep(15)
+        filename = unquote(self.file.filename).split("/")[-1].replace(" ", "%20")
         loop = self.app.state.loop
         self.job.status = "processing"
         asyncio.run_coroutine_threadsafe(self.job.broadcast_progress(), loop)
 
         media_path = pathlib.Path(settings.media_path)
-        file_path = media_path.joinpath(self.file.filename)
+        file_path = media_path.joinpath(filename)
         if not media_path.exists():
             self.job.status = "failed"
             future_ws = asyncio.run_coroutine_threadsafe(self.job.broadcast_progress(), loop)
@@ -57,7 +59,7 @@ class JobFileProcessor:
             future = self.app.state.process_pool.submit(JobFileProcessor.check_for_virus, str(file_path))
             result = future.result()
             if result == "OK":
-                future_save = asyncio.run_coroutine_threadsafe(self.save_file(), loop)
+                future_save = asyncio.run_coroutine_threadsafe(self.save_file(filename), loop)
                 future_save.result()
                 self.job.status = "completed"
             else:
